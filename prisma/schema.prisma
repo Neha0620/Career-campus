@@ -1,0 +1,73 @@
+// Career Compass — data model
+// Run `npm run db:push` after setting DATABASE_URL to sync this to Postgres.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  name          String?
+  createdAt     DateTime  @default(now())
+
+  profile       Profile?
+  roadmaps      Roadmap[]
+  chatMessages  ChatMessage[]
+}
+
+// Captured from the onboarding quiz — the seed for every recommendation
+model Profile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  currentRole    String
+  targetRole     String
+  experienceYears Int
+  resumeText     String?  @db.Text
+
+  currentSkills  String[] // extracted or self-reported
+  missingSkills  String[] // filled in after analysis
+  matchScore     Int?     // 0-100, how close current -> target role
+
+  updatedAt      DateTime @updatedAt
+}
+
+model Roadmap {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  targetRole String
+  milestones Milestone[]
+  createdAt DateTime @default(now())
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  roadmapId   String
+  roadmap     Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String
+  order       Int
+  estWeeks    Int
+  completed   Boolean  @default(false)
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role      String   // "user" | "assistant"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+}
